@@ -24,13 +24,12 @@ jobs:
 
       - name: Build
         run: |
-          # Build binaries with version information
-          BUILD_FLAGS="-X github.com/robalyx/rotten/internal/version.EngineVersion=${{ env.ENGINE_VERSION }}"
+          BUILD_FLAGS="-X github.com/robalyx/rotten/internal/version.EngineVersion=${{ env.ENGINE_VERSION }} -w -s"
           
-          GOOS=linux GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-linux-amd64 ./cmd
-          GOOS=windows GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-windows-amd64.exe ./cmd
-          GOOS=darwin GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-amd64 ./cmd
-          GOOS=darwin GOARCH=arm64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-arm64 ./cmd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-linux-amd64 ./cmd
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-windows-amd64.exe ./cmd
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-amd64 ./cmd
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-arm64 ./cmd
 
       - name: Create Release
         env:
