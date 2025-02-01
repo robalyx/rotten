@@ -14,9 +14,6 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install UPX
-        run: sudo apt-get update && sudo apt-get install -y upx-ucl
-
       - name: Get Versions
         id: get_versions
         run: |
@@ -34,10 +31,6 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-windows-amd64.exe ./cmd
           GOOS=darwin GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-amd64 ./cmd
           GOOS=darwin GOARCH=arm64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-arm64 ./cmd
-          
-          # Compress Linux and Windows binaries only
-          upx --best --lzma rotten-linux-amd64
-          upx --best --lzma rotten-windows-amd64.exe
 
       - name: Create Release
         env:
