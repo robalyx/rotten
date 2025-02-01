@@ -1,0 +1,49 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Export version'
+        required: true
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install UPX
+        run: sudo apt-get update && sudo apt-get install -y upx-ucl
+
+      - name: Get Engine Version
+        id: get_version
+        run: |
+          ENGINE_VERSION=$(jq -r '.engineVersion' exports/official/export_config.json)
+          echo "ENGINE_VERSION=$ENGINE_VERSION" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          # Build binaries with version information
+          BUILD_FLAGS="-X github.com/robalyx/rotten/internal/version.EngineVersion=${{ env.ENGINE_VERSION }}"
+          
+          GOOS=linux GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-linux-amd64 ./cmd
+          GOOS=windows GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-windows-amd64.exe ./cmd
+          GOOS=darwin GOARCH=amd64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-amd64 ./cmd
+          GOOS=darwin GOARCH=arm64 go build -ldflags="$BUILD_FLAGS" -o rotten-darwin-arm64 ./cmd
+          
+          # Compress Linux and Windows binaries only
+          upx --best --lzma rotten-linux-amd64
+          upx --best --lzma rotten-windows-amd64.exe
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x ./scripts/create_release.sh
+          ./scripts/create_release.sh "${{ secrets.GITHUB_TOKEN }}" 

@@ -1,0 +1,9 @@
+{
+    "engineVersion": "1.0.0",
+    "exportVersion": "1.0.0",
+    "salt": "r0t3ct0r_s4lt_f0r_3xp0rt5_2025_1738205981",
+    "description": "Official Export from a 1 hour test run",
+    "hashType": "argon2id",
+    "iterations": 16,
+    "memory": 32
+}
