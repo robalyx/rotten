@@ -1,10 +1,6 @@
 name: Release
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Export version'
-        required: true
 
 jobs:
   create-release:
@@ -21,11 +17,13 @@ jobs:
       - name: Install UPX
         run: sudo apt-get update && sudo apt-get install -y upx-ucl
 
-      - name: Get Engine Version
-        id: get_version
+      - name: Get Versions
+        id: get_versions
         run: |
           ENGINE_VERSION=$(jq -r '.engineVersion' exports/official/export_config.json)
+          EXPORT_VERSION=$(jq -r '.exportVersion' exports/official/export_config.json)
           echo "ENGINE_VERSION=$ENGINE_VERSION" >> $GITHUB_ENV
+          echo "EXPORT_VERSION=$EXPORT_VERSION" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -46,4 +44,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./scripts/create_release.sh
-          ./scripts/create_release.sh "${{ secrets.GITHUB_TOKEN }}" 
+          ./scripts/create_release.sh "${{ secrets.GITHUB_TOKEN }}" "${{ env.ENGINE_VERSION }}" "${{ env.EXPORT_VERSION }}" 

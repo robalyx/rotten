@@ -6,16 +6,8 @@ REPO_OWNER="robalyx"
 REPO_NAME="rotten"
 EXPORT_DIR="exports/official"
 GITHUB_TOKEN="$1"
-
-# Read version from export config
-ENGINE_VERSION=$(jq -r '.engineVersion' "$EXPORT_DIR/export_config.json")
-EXPORT_VERSION=$(jq -r '.exportVersion' "$EXPORT_DIR/export_config.json")
-
-if [ -z "$EXPORT_VERSION" ] || [ -z "$ENGINE_VERSION" ]; then
-    echo "Error: Failed to read version from export config"
-    exit 1
-fi
-
+ENGINE_VERSION="$2"
+EXPORT_VERSION="$3"
 
 # Create export zip file
 EXPORT_ZIP="export-${EXPORT_VERSION}.zip"
