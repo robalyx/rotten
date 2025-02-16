@@ -184,9 +184,11 @@ func (m Model) renderResultView(header string) string {
 
 	var details string
 	if m.result {
-		details = fmt.Sprintf("\nStatus: %s\nReason: %s",
+		formattedReason := strings.ReplaceAll(m.reason, "; ", "\n\n")
+		details = fmt.Sprintf("\nStatus: %s\nConfidence: %s\nReason: %s",
 			successStyle.Render(m.status),
-			reasonBoxStyle.Render(m.reason))
+			confidenceStyle.Render(fmt.Sprintf("%.2f", m.confidence)),
+			reasonBoxStyle.Render(formattedReason))
 	}
 
 	content := fmt.Sprintf("%s\n\n%s\n\n%s ID %s was %s in the export%s\n\n%s\n%s",
@@ -224,11 +226,13 @@ func (m Model) renderFriendsResultView(header string) string {
 
 		// Show current friend
 		if result := m.friendResults[m.friendsScrollPos]; result.Found {
-			content += fmt.Sprintf("%s %s: %s\n%s\n\n",
+			formattedReason := strings.ReplaceAll(result.Reason, "; ", "\n\n")
+			content += fmt.Sprintf("%s %s: %s\nConfidence: %s\n%s\n\n",
 				failureStyle.Render("✗"),
 				inputStyle.Render(strconv.FormatUint(result.ID, 10)),
 				successStyle.Render(result.Status),
-				reasonBoxStyle.Render(result.Reason))
+				confidenceStyle.Render(fmt.Sprintf("%.2f", result.Confidence)),
+				reasonBoxStyle.Render(formattedReason))
 		}
 
 		// Show scroll indicator if needed

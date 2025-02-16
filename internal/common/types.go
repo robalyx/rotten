@@ -17,3 +17,11 @@ const (
 	StorageTypeBinary StorageType = "binary"
 	StorageTypeCSV    StorageType = "csv"
 )
+
+// CheckResult contains the result of a check operation.
+type CheckResult struct {
+	Found      bool
+	Status     string
+	Reason     string
+	Confidence float64
+}

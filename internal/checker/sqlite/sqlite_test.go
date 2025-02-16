@@ -28,7 +28,8 @@ func setupTestFiles(t *testing.T, dir string) {
 			CREATE TABLE IF NOT EXISTS `+tableName+` (
 				hash TEXT PRIMARY KEY,
 				status TEXT NOT NULL,
-				reason TEXT NOT NULL
+				reason TEXT NOT NULL,
+				confidence REAL NOT NULL DEFAULT 1.0
 			);
 		`)
 		require.NoError(t, err)
@@ -36,8 +37,8 @@ func setupTestFiles(t *testing.T, dir string) {
 		// Insert test data for users.db
 		if tableName == "users" {
 			err = sqlitex.ExecScript(conn, `
-				INSERT INTO users (hash, status, reason)
-				VALUES ('testHash123', 'banned', 'violation');
+				INSERT INTO users (hash, status, reason, confidence)
+				VALUES ('testHash123', 'banned', 'violation', 0.95);
 			`)
 			require.NoError(t, err)
 		}
@@ -95,7 +96,7 @@ func TestChecker_Check(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			checker := New(tempDir)
-			found, status, reason, err := checker.Check(tt.checkType, tt.hash)
+			result, err := checker.Check(tt.checkType, tt.hash)
 
 			if tt.wantErrType != nil {
 				assert.ErrorIs(t, err, tt.wantErrType)
@@ -103,13 +104,14 @@ func TestChecker_Check(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.wantFound, found)
 			if tt.wantFound {
-				assert.Equal(t, tt.wantStatus, status)
-				assert.Equal(t, tt.wantReason, reason)
+				assert.True(t, result.Found)
+				assert.Equal(t, tt.wantStatus, result.Status)
+				assert.Equal(t, tt.wantReason, result.Reason)
 			} else {
-				assert.Empty(t, status)
-				assert.Empty(t, reason)
+				assert.False(t, result.Found)
+				assert.Empty(t, result.Status)
+				assert.Empty(t, result.Reason)
 			}
 		})
 	}
@@ -162,17 +164,9 @@ func TestChecker_NonexistentFile(t *testing.T) {
 	tempDir := t.TempDir()
 	checker := New(tempDir)
 
-	// Test Check with nonexistent file
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.Error(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
-
-	// Test GetHashCount with nonexistent file
-	count, err := checker.GetHashCount(common.CheckTypeUser)
-	assert.Error(t, err)
-	assert.Zero(t, count)
+	assert.Nil(t, result)
 }
 
 func TestChecker_InvalidDatabase(t *testing.T) {
@@ -185,11 +179,9 @@ func TestChecker_InvalidDatabase(t *testing.T) {
 	checker := New(tempDir)
 
 	// Test Check with invalid database
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.Error(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
+	assert.Nil(t, result)
 
 	// Test GetHashCount with invalid database
 	count, err := checker.GetHashCount(common.CheckTypeUser)
@@ -217,11 +209,9 @@ func TestChecker_InvalidSchema(t *testing.T) {
 	checker := New(tempDir)
 
 	// Test Check with invalid schema
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.Error(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
+	assert.Nil(t, result)
 
 	// Test GetHashCount with invalid schema
 	count, err := checker.GetHashCount(common.CheckTypeUser)
@@ -241,7 +231,8 @@ func TestChecker_EmptyDatabase(t *testing.T) {
 		CREATE TABLE users (
 			hash TEXT PRIMARY KEY,
 			status TEXT NOT NULL,
-			reason TEXT NOT NULL
+			reason TEXT NOT NULL,
+			confidence REAL NOT NULL DEFAULT 1.0
 		);
 	`)
 	require.NoError(t, err)
@@ -250,11 +241,11 @@ func TestChecker_EmptyDatabase(t *testing.T) {
 	checker := New(tempDir)
 
 	// Test Check with empty database
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.NoError(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
+	assert.False(t, result.Found)
+	assert.Empty(t, result.Status)
+	assert.Empty(t, result.Reason)
 
 	// Test GetHashCount with empty database
 	count, err := checker.GetHashCount(common.CheckTypeUser)

@@ -43,9 +43,10 @@ type Model struct {
 	hashCount uint64
 
 	// Check results
-	result bool
-	status string
-	reason string
+	result     bool
+	status     string
+	reason     string
+	confidence float64
 
 	// Friends check specific
 	friendResults      []FriendResult
@@ -63,10 +64,11 @@ type Model struct {
 
 // FriendResult represents the result of a friend check.
 type FriendResult struct {
-	ID     uint64
-	Found  bool
-	Status string
-	Reason string
+	ID         uint64
+	Found      bool
+	Status     string
+	Reason     string
+	Confidence float64
 }
 
 // NewModel creates a new Model instance.

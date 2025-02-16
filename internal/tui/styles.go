@@ -71,6 +71,11 @@ var (
 			Padding(0, 1).
 			Width(20)
 
+	// confidenceStyle defines the appearance of confidence values.
+	confidenceStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("214")). // Orange
+			Bold(true)
+
 	// reasonBoxStyle defines the appearance of reason text boxes.
 	reasonBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).

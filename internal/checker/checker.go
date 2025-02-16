@@ -14,7 +14,7 @@ var ErrUnsupportedStorageType = errors.New("unsupported storage type")
 
 // Checker interface defines the methods required for checking IDs.
 type Checker interface {
-	Check(checkType common.CheckType, id string) (found bool, status string, reason string, err error)
+	Check(checkType common.CheckType, id string) (*common.CheckResult, error)
 	GetHashCount(checkType common.CheckType) (uint64, error)
 }
 

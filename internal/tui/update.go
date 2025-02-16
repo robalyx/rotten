@@ -73,6 +73,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.result = msg.Found
 		m.status = msg.Status
 		m.reason = msg.Reason
+		m.confidence = msg.Confidence
 		m.state = StateUserGroupResult
 		return m, nil
 
@@ -334,13 +335,14 @@ func (m Model) handleIDSubmission() (tea.Model, tea.Cmd) {
 		hashType := HashType(m.config.HashType)
 		hash := hashID(id, m.config.Salt, hashType, m.config.Iterations, m.config.Memory)
 
-		found, status, reason, err := m.checker.Check(m.checkType, hash)
+		result, err := m.checker.Check(m.checkType, hash)
 		return CheckProgressMsg{
-			Complete: true,
-			Error:    err,
-			Found:    found,
-			Status:   status,
-			Reason:   reason,
+			Complete:   true,
+			Error:      err,
+			Found:      result != nil && result.Found,
+			Status:     result.Status,
+			Reason:     result.Reason,
+			Confidence: result.Confidence,
 		}
 	}
 }
@@ -391,7 +393,7 @@ func (m Model) handleFriendsCheck() (tea.Model, tea.Cmd) {
 			for _, friend := range friendsList.PageItems {
 				hash := hashID(friend.ID, m.config.Salt, hashType, m.config.Iterations, m.config.Memory)
 
-				found, status, reason, err := m.checker.Check(common.CheckTypeUser, hash)
+				result, err := m.checker.Check(common.CheckTypeUser, hash)
 				if err != nil {
 					return FriendsCheckProgressMsg{
 						Complete: true,
@@ -399,13 +401,14 @@ func (m Model) handleFriendsCheck() (tea.Model, tea.Cmd) {
 					}
 				}
 
-				if found {
+				if result.Found {
 					flaggedCount++
 					friendResults = append(friendResults, FriendResult{
-						ID:     friend.ID,
-						Found:  true,
-						Status: status,
-						Reason: reason,
+						ID:         friend.ID,
+						Found:      true,
+						Status:     result.Status,
+						Reason:     result.Reason,
+						Confidence: result.Confidence,
 					})
 				}
 			}

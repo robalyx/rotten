@@ -67,18 +67,12 @@ func TestChecker_Check(t *testing.T) {
 			hash:      "0123456789abcdef",
 			wantFound: false,
 		},
-		{
-			name:      "Invalid hash format",
-			checkType: common.CheckTypeUser,
-			hash:      "invalid",
-			wantFound: false,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			checker := New(tempDir)
-			found, status, reason, err := checker.Check(tt.checkType, tt.hash)
+			result, err := checker.Check(tt.checkType, tt.hash)
 
 			if tt.wantErrType != nil {
 				assert.ErrorIs(t, err, tt.wantErrType)
@@ -87,13 +81,13 @@ func TestChecker_Check(t *testing.T) {
 
 			if tt.wantFound {
 				assert.NoError(t, err)
-				assert.True(t, found)
-				assert.Equal(t, tt.wantStatus, status)
-				assert.Equal(t, tt.wantReason, reason)
+				assert.True(t, result.Found)
+				assert.Equal(t, tt.wantStatus, result.Status)
+				assert.Equal(t, tt.wantReason, result.Reason)
 			} else {
-				assert.False(t, found)
-				assert.Empty(t, status)
-				assert.Empty(t, reason)
+				assert.False(t, result.Found)
+				assert.Empty(t, result.Status)
+				assert.Empty(t, result.Reason)
 			}
 		})
 	}
@@ -147,11 +141,9 @@ func TestChecker_NonexistentFile(t *testing.T) {
 	checker := New(tempDir)
 
 	// Test Check with nonexistent file
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.Error(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
+	assert.Nil(t, result)
 
 	// Test GetHashCount with nonexistent file
 	count, err := checker.GetHashCount(common.CheckTypeUser)
@@ -169,11 +161,9 @@ func TestChecker_InvalidFileFormat(t *testing.T) {
 	checker := New(tempDir)
 
 	// Test Check with invalid file format
-	found, status, reason, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
+	result, err := checker.Check(common.CheckTypeUser, "0123456789abcdef")
 	assert.Error(t, err)
-	assert.False(t, found)
-	assert.Empty(t, status)
-	assert.Empty(t, reason)
+	assert.Nil(t, result)
 
 	// Test GetHashCount with invalid file format
 	count, err := checker.GetHashCount(common.CheckTypeUser)
@@ -186,6 +176,7 @@ func TestChecker_WithData(t *testing.T) {
 	testHash := "0123456789abcdef"
 	testStatus := "banned"
 	testReason := "violation"
+	testConfidence := float64(0.95)
 
 	// Create test file with one record
 	f, err := os.Create(filepath.Join(tempDir, "users.bin"))
@@ -214,17 +205,32 @@ func TestChecker_WithData(t *testing.T) {
 	_, err = f.Write([]byte(testReason))
 	require.NoError(t, err)
 
+	// Write confidence
+	err = binary.Write(f, binary.LittleEndian, testConfidence)
+	require.NoError(t, err)
+
 	checker := New(tempDir)
 
 	// Test finding the record
-	found, status, reason, err := checker.Check(common.CheckTypeUser, testHash)
+	result, err := checker.Check(common.CheckTypeUser, testHash)
 	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.Equal(t, testStatus, status)
-	assert.Equal(t, testReason, reason)
+	assert.True(t, result.Found)
+	assert.Equal(t, testStatus, result.Status)
+	assert.Equal(t, testReason, result.Reason)
+	assert.Equal(t, testConfidence, result.Confidence)
 
 	// Test count
 	count, err := checker.GetHashCount(common.CheckTypeUser)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), count)
+}
+
+func TestChecker_InvalidHashFormat(t *testing.T) {
+	tempDir := t.TempDir()
+	checker := New(tempDir)
+
+	result, err := checker.Check(common.CheckTypeUser, "invalid")
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "invalid hash format")
 }

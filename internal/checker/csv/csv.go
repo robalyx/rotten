@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/robalyx/rotten/internal/common"
 )
@@ -30,7 +31,7 @@ func New(dir string) *Checker {
 }
 
 // Check verifies if the given ID exists in the CSV file.
-func (c *Checker) Check(checkType common.CheckType, id string) (bool, string, string, error) {
+func (c *Checker) Check(checkType common.CheckType, id string) (*common.CheckResult, error) {
 	// Determine filename based on check type
 	filename := "users.csv"
 	if checkType == common.CheckTypeGroup {
@@ -40,7 +41,7 @@ func (c *Checker) Check(checkType common.CheckType, id string) (bool, string, st
 	// Open file
 	file, err := os.Open(filepath.Join(c.dir, filename))
 	if err != nil {
-		return false, "", "", fmt.Errorf("failed to open file: %w", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
@@ -50,31 +51,42 @@ func (c *Checker) Check(checkType common.CheckType, id string) (bool, string, st
 	// Read header
 	header, err := reader.Read()
 	if err != nil {
-		return false, "", "", fmt.Errorf("%w: failed to read header", ErrInvalidFormat)
+		return nil, fmt.Errorf("%w: failed to read header", ErrInvalidFormat)
 	}
 
 	// Validate header
 	if err := validateHeader(header); err != nil {
-		return false, "", "", err
+		return nil, err
 	}
 
 	// Read all records
 	records, err := reader.ReadAll()
 	if err != nil {
-		return false, "", "", fmt.Errorf("failed to read CSV: %w", err)
+		return nil, fmt.Errorf("failed to read CSV: %w", err)
 	}
 
 	// Check each record
 	for _, record := range records {
-		if len(record) != 3 {
-			return false, "", "", fmt.Errorf("%w: incorrect number of columns", ErrInvalidFormat)
+		if len(record) != 4 {
+			return nil, fmt.Errorf("%w: incorrect number of columns", ErrInvalidFormat)
 		}
 		if record[0] == id {
-			return true, record[1], record[2], nil
+			confidence, err := strconv.ParseFloat(record[3], 64)
+			if err != nil {
+				return nil, fmt.Errorf("invalid confidence value: %w", err)
+			}
+
+			result := common.CheckResult{
+				Found:      true,
+				Status:     record[1],
+				Reason:     record[2],
+				Confidence: confidence,
+			}
+			return &result, nil
 		}
 	}
 
-	return false, "", "", nil
+	return &common.CheckResult{}, nil
 }
 
 // GetHashCount returns the number of hashes in the CSV file.
@@ -114,7 +126,7 @@ func (c *Checker) GetHashCount(checkType common.CheckType) (uint64, error) {
 
 	// Validate record format
 	for _, record := range records {
-		if len(record) != 3 {
+		if len(record) != 4 {
 			return 0, fmt.Errorf("%w: incorrect number of columns", ErrInvalidFormat)
 		}
 	}
@@ -124,8 +136,9 @@ func (c *Checker) GetHashCount(checkType common.CheckType) (uint64, error) {
 
 // validateHeader checks if the CSV file has the correct header format.
 func validateHeader(header []string) error {
-	if len(header) != 3 || header[0] != "hash" || header[1] != "status" || header[2] != "reason" {
-		return fmt.Errorf("%w: expected header 'hash,status,reason'", ErrInvalidFormat)
+	if len(header) != 4 || header[0] != "hash" || header[1] != "status" ||
+		header[2] != "reason" || header[3] != "confidence" {
+		return fmt.Errorf("%w: expected header 'hash,status,reason,confidence'", ErrInvalidFormat)
 	}
 	return nil
 }

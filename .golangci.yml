@@ -28,7 +28,7 @@ linters:
     - forbidigo # Not needed
     - exhaustive # Not needed
     - gocognit # Not needed
-    - exportloopref # Deprecated
+    - tenv # Deprecated
 
 linters-settings:
   funlen:

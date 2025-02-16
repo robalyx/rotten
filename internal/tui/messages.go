@@ -16,11 +16,12 @@ type ExportDownloadCompleteMsg struct {
 
 // CheckProgressMsg is sent to indicate progress in checking an ID.
 type CheckProgressMsg struct {
-	Complete bool
-	Error    error
-	Found    bool
-	Status   string
-	Reason   string
+	Complete   bool
+	Error      error
+	Found      bool
+	Status     string
+	Reason     string
+	Confidence float64
 }
 
 // FriendsCheckProgressMsg is sent to indicate progress in checking friends.
